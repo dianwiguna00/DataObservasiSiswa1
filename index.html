@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Observasi Perilaku Siswa</title>
+
+<style>
+
+body{
+    font-family:Arial;
+    padding:15px;
+    background:#f3f5f8;
+}
+
+h2{
+    margin-bottom:15px;
+}
+
+.toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:center;
+    margin-bottom:15px;
+}
+
+.toolbar select,
+.toolbar input,
+.toolbar button{
+    height:48px;
+    font-size:16px;
+    padding:0 10px;
+}
+
+.table-container{
+    overflow:auto;
+    max-width:100%;
+    max-height:80vh;
+}
+
+table{
+    border-collapse:collapse;
+    width:max-content;
+}
+
+.sticky-no{
+    position:sticky;
+    left:0;
+    background:white;
+    z-index:2;
+}
+
+th.sticky-no{
+    position:sticky;
+    left:0;
+    top:0;
+    background:#0d6efd;
+    color:white;
+    z-index:10;
+}
+
+th,td{
+    border:1px solid #ccc;
+    padding:4px;
+    text-align:center;
+}
+
+th{
+    background:#0d6efd;
+    color:white;
+    font-size:14px;
+    position:sticky;
+    top:0;
+    z-index:4;
+}
+
+.nama{
+    text-align:left;
+    min-width:200px;
+}
+
+.counter{
+    width:42px;
+    height:42px;
+    border:none;
+    border-radius:5px;
+    background:#e9ecef;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.counter:hover{
+    background:#cfe2ff;
+}
+
+</style>
+</head>
+<body>
+
+<h2>OBSERVASI PERILAKU SISWA</h2>
+
+<div class="toolbar">
+
+<select id="kelas" onchange="loadSiswa()">
+    <option>7A</option>
+    <option>7B</option>
+    <option>7C</option>
+    <option>7D</option>
+    <option>7E</option>
+    <option>7F</option>
+    <option>7G</option>
+    <option>7H</option>
+    <option>7I</option>
+</select>
+
+<input type="date" id="tanggal">
+
+<button onclick="simpan()">
+💾 Simpan
+</button>
+
+<select id="kelasDownload">
+    <option value="">Pilih Kelas Download</option>
+    <option value="7A">7A</option>
+    <option value="7B">7B</option>
+    <option value="7C">7C</option>
+    <option value="7D">7D</option>
+    <option value="7E">7E</option>
+    <option value="7F">7F</option>
+    <option value="7G">7G</option>
+    <option value="7H">7H</option>
+    <option value="7I">7I</option>
+</select>
+
+<button onclick="downloadCSV()">
+📥 Download
+</button>
+
+</div>
+
+<div style="overflow:auto">
+
+<div class="table-container">
+
+<table>
+
+<thead id="thead"></thead>
+
+<tbody id="tbody"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+<script>
+
+const API =
+"https://script.google.com/macros/s/AKfycbzuyLoJIcZrvaEcUOMBW2THXApIU5XnYr6Ndgu_UKzMz-zXUIjmKkbOK39QS2g_pIf6/exec";
+
+const statusList = [
+
+"Tidur",
+"Ngobrol",
+"Berparas",
+"Ngelamun",
+"Beli Pulpen",
+"Ijin ke Belakang",
+"Ijin Kegiatan",
+"Terlambat",
+"Rajin",
+"Aktif",
+"Bekerjasama",
+"Berpendapat",
+"Tidak Menulis",
+"Tidak Mengerjakan Tugas",
+"Menyontek"
+
+];
+
+let dataSiswa = [];
+
+// ========================
+// LOAD SISWA
+// ========================
+async function loadSiswa(){
+
+    try{
+
+        const kelas =
+        document.getElementById(
+            "kelas"
+        ).value;
+
+        const res =
+        await fetch(
+            API + "?kelas=" + kelas
+        );
+
+        dataSiswa =
+        await res.json();
+
+        dataSiswa.forEach(s=>{
+
+            statusList.forEach(st=>{
+
+                if(
+                    s[st] === undefined
+                ){
+                    s[st] = 0;
+                }
+
+            });
+
+        });
+
+        render();
+
+    }catch(err){
+
+        alert(
+            "Gagal mengambil data siswa"
+        );
+
+    }
+
+}
+
+// ========================
+// RENDER
+// ========================
+function render(){
+
+   let header = `
+<tr>
+<th class="sticky-no">No</th>
+<th>NIS</th>
+<th>Nama</th>
+<th>L/P</th>
+`;
+
+    statusList.forEach(st=>{
+
+        header += `
+        <th>${st}</th>
+        `;
+
+    });
+
+    header += `
+    </tr>
+    `;
+
+    document
+    .getElementById("thead")
+    .innerHTML = header;
+
+    let html = "";
+
+    dataSiswa.forEach((s,i)=>{
+
+        html += `
+        <tr>
+
+        <td class="sticky-no">${s.no}</td>
+
+        <td>${s.nis}</td>
+
+        <td class="nama">
+        ${s.nama}
+        </td>
+
+        <td>${s.jk}</td>
+        `;
+
+        statusList.forEach(st=>{
+
+            html += `
+            <td>
+
+            <button
+            class="counter"
+            onclick="
+            tambahPoint(
+            ${i},
+            '${st}'
+            )">
+
+            ${s[st]}
+
+            </button>
+
+            </td>
+            `;
+
+        });
+
+        html += `
+        </tr>
+        `;
+
+    });
+
+    document
+    .getElementById("tbody")
+    .innerHTML = html;
+
+}
+
+// ========================
+// TAMBAH POINT
+// ========================
+function tambahPoint(
+    index,
+    status
+){
+
+    dataSiswa[index][status]++;
+
+    render();
+
+}
+
+// ========================
+// SIMPAN
+// ========================
+async function simpan(){
+
+    try{
+
+        const data = {
+
+            kelas:
+            document
+            .getElementById(
+                "kelas"
+            ).value,
+
+            tanggal:
+            document
+            .getElementById(
+                "tanggal"
+            ).value,
+
+            observasi:
+            dataSiswa
+
+        };
+
+        await fetch(
+            API,
+            {
+                method:"POST",
+                body:
+                JSON.stringify(
+                    data
+                )
+            }
+        );
+
+    }catch(err){
+
+        alert(
+            "Gagal menyimpan"
+        );
+
+    }
+
+}
+
+// ========================
+// DOWNLOAD REKAP
+// ========================
+async function downloadCSV(){
+
+    let kelas =
+    document.getElementById(
+        "kelasDownload"
+    ).value;
+
+    if(!kelas){
+
+        alert(
+            "Pilih kelas terlebih dahulu"
+        );
+
+        return;
+    }
+
+    try{
+
+        let response =
+        await fetch(
+            API + "?rekap=" + kelas
+        );
+
+        let data =
+        await response.json();
+
+        let csv = "";
+
+        data.forEach(row=>{
+
+            csv +=
+            row.join(";") + "\n";
+
+        });
+
+        Android.downloadCSV(csv);
+
+    }catch(err){
+
+        alert(
+            "Gagal mengunduh rekap"
+        );
+
+    }
+
+}
+
+// ========================
+// ONLOAD
+// ========================
+window.onload =
+function(){
+
+    document
+    .getElementById(
+        "tanggal"
+    ).value =
+    new Date()
+    .toISOString()
+    .split("T")[0];
+
+    loadSiswa();
+
+}
+
+</script>
+
+</body>
+</html>
